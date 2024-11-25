@@ -7,7 +7,7 @@ def get_headers(custom_headers=None):
     headers = custom_headers or {}
     auth_token = os.getenv('AUTH_TOKEN')
     if auth_token:
-        headers['Authorization'] = f'Bearer {auth_token}'
+        headers['Authorization'] = f'{auth_token}'
     return headers
 
 

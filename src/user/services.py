@@ -1,7 +1,10 @@
 import os
 
+from dotenv import load_dotenv
+
 from src.common.util import post, get
 
+load_dotenv()
 BASE_URL = os.getenv('API_BASE_URL')
 
 class UserService:
