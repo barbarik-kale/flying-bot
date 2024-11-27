@@ -17,7 +17,6 @@ async def main():
     for drone in drone_list:
         tasks.append(simulate_drone(drone.get('id')))
         tasks.append(simulate_controller(drone.get('id')))
-        break
 
     await asyncio.gather(*tasks)
 
