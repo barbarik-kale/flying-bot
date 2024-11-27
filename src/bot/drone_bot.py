@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 
 import websockets
@@ -19,7 +20,24 @@ class Drone:
         self.avg_speed_ms = drone_details.get('avg_speed_ms')
         self.token = os.getenv('AUTH_TOKEN')
         self.uri = os.getenv('DRONE_WS_URI')
+        self.latitude = 0
+        self.longitude = 0
         self.websocket = None
+
+    def __handle_message(self, message):
+        try:
+            message = json.loads(message)
+            command = message.get('command')
+            if command == 'LEFT':
+                self.latitude -= self.avg_speed_ms
+            elif command == 'RIGHT':
+                self.latitude += self.avg_speed_ms
+            elif command == 'UP':
+                self.longitude += self.avg_speed_ms
+            elif command == 'DOWN':
+                self.longitude -= self.longitude
+        except Exception as e:
+            pass
 
     async def __connect(self, uri):
         uri = f'{uri}?drone_id={self.id}'
@@ -45,15 +63,14 @@ class Drone:
     async def __receive(self):
         try:
             async for message in self.websocket:
-                print(f'Message received by drone {self.id}: {message}')
-                # You can add logic here to handle different types of messages
+                self.__handle_message(message)
         except Exception as e:
             print(f'Error receiving message: {e}')
 
     async def __send_periodic(self, interval=2.0):
         try:
             while True:
-                data = '{"latitude":10.0, "longitude":14}'
+                data = json.dumps({'latitude': self.latitude, 'longitude': self.longitude})
                 await self.__send(data)
                 await asyncio.sleep(interval)
         except asyncio.CancelledError:
