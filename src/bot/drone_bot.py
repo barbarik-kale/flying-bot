@@ -8,6 +8,9 @@ from src.drone.services import DroneService
 SEND_INTERVAL = 5
 
 class Drone:
+    """
+    Simulates a drone bot.
+    """
     def __init__(self, drone_id):
         drone_details, error = DroneService.get_drone(drone_id)
         drone_details = drone_details.get('data')
@@ -50,7 +53,7 @@ class Drone:
     async def __send_periodic(self, interval=2.0):
         try:
             while True:
-                data = 'Ping'
+                data = '{"latitude":10.0, "longitude":14}'
                 await self.__send(data)
                 await asyncio.sleep(interval)
         except asyncio.CancelledError:

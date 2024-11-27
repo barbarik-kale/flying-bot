@@ -1,15 +1,20 @@
 import asyncio
-import os
-
 from dotenv import load_dotenv
 
-from src.bot.Drone import simulate_drone
+from src.bot.drone_bot import simulate_drone
+from src.drone.services import DroneService
 
 
-def main():
-    drone_id = os.getenv('DRONE_ID')
-    asyncio.run(simulate_drone(drone_id))
+async def main():
+    """
+    Fetches list of drones and simulates drone bots and controller bots in async mode
+    """
+    data, error = DroneService.get_drone_list()
+    drone_list = data.get('data')
+
+    tasks = [simulate_drone(drone.get('id')) for drone in drone_list]
+    await asyncio.gather(*tasks)
 
 if __name__ == '__main__':
     load_dotenv()
-    main()
+    asyncio.run(main())
