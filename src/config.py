@@ -5,3 +5,4 @@ urls = {
     'user': f'{base_url}/user/',
     'drone': f'{base_url}/drone/'
 }
+
