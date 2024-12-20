@@ -2,9 +2,11 @@ import asyncio
 import json
 import os
 
+import cv2
 import websockets
 
 from src.drone.services import DroneService
+from src.ws.services import TokenService
 
 SEND_INTERVAL = 5
 
@@ -40,15 +42,22 @@ class Drone:
             pass
 
     async def __connect(self, uri):
-        uri = f'{uri}?drone_id={self.id}'
-        headers = {
-            'Authorization': self.token
-        }
+        ws_token = TokenService.get_ws_token(self.id)
+        uri = f'{uri}?token={ws_token}'
         try:
-            self.websocket = await websockets.connect(uri, additional_headers=headers)
+            self.websocket = await websockets.connect(uri)
             print(f'Drone {self.id} connected to {uri}')
         except Exception as e:
             print(f'Error connecting drone {self.id}: {e}')
+
+    async  def __send_media(self, bytes_data):
+        if self.websocket:
+            try:
+                await self.websocket.send(bytes_data)
+            except Exception as e:
+                print(f'Error sending data: {e}')
+        else:
+            print('Not connected to the server.')
 
     async def __send(self, data):
         if self.websocket:
@@ -76,6 +85,24 @@ class Drone:
         except asyncio.CancelledError:
             print('Periodic sending stopped.')
 
+    async def __video_send_task(self):
+        file_path = os.getenv('FILE_PATH')
+        video = cv2.VideoCapture(file_path)
+
+        if not video.isOpened():
+            print(f'Failed to open video {file_path}')
+
+        while True:
+            ret, frame = video.read()
+            if not ret:
+                video = cv2.VideoCapture(file_path)
+
+            _, buffer = cv2.imencode('.jpg', frame)
+
+            await self.__send_media(buffer.tobytes())
+            print('media sent')
+            await asyncio.sleep(3)
+
     async def run(self):
         """Start the drone: connect, send data periodically, and listen for incoming messages."""
         await self.__connect(self.uri)
@@ -83,7 +110,8 @@ class Drone:
             try:
                 send_task = asyncio.create_task(self.__send_periodic(SEND_INTERVAL))
                 receive_task = asyncio.create_task(self.__receive())
-                await asyncio.gather(send_task, receive_task)
+                video_task = asyncio.create_task(self.__video_send_task())
+                await asyncio.gather(send_task, receive_task, video_task)
             except asyncio.CancelledError:
                 print('Drone tasks stopped.')
             finally:

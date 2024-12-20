@@ -6,6 +6,8 @@ import random
 import websockets
 
 from src.drone.services import DroneService
+from src.ws.services import TokenService
+
 CONTROLLER_SEND_INTERVAL = 1.0
 
 class Controller:
@@ -26,6 +28,8 @@ class Controller:
 
     def __handle_message(self, message):
         try:
+            print(f'Message length = {len(message)}')
+            print(f'Message length = {message}')
             message = json.loads(message)
             self.latitude = message.get('latitude', self.latitude)
             self.longitude = message.get('longitude', self.longitude)
@@ -33,12 +37,10 @@ class Controller:
             pass
 
     async def __connect(self):
-        uri = f'{self.ws_uri}?drone_id={self.id}'
-        headers = {
-            'Authorization': self.token
-        }
+        ws_token = TokenService.get_ws_token(self.id)
+        uri = f'{self.ws_uri}?token={ws_token}'
         try:
-            self.websocket = await websockets.connect(uri, additional_headers=headers)
+            self.websocket = await websockets.connect(uri)
             print(f'Controller {self.id} connected to {uri}')
         except Exception as e:
             print(f'Error connecting drone {self.id}: {e}')
